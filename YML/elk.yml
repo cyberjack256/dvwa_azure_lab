@@ -1,0 +1,44 @@
+---
+- name: Config Elk VM with Docker
+  hosts: elk
+  become: true
+  tasks:
+    - name: Use more memory
+      sysctl:
+        name: vm.max_map_count
+        value: '262144'
+        state: present
+        reload: yes
+# This section to install docker.io
+    - name: docker.io
+      apt:
+        update_cache: yes
+        name: docker.io
+        state: present
+# This section to install pip3
+    - name: Install pip3
+      apt:
+        name: python3-pip
+        state: present
+# This section to install Docker Python Pip Module
+    - name: Install Docker Python Module
+      pip:
+        name: docker
+        state: present
+
+# This section to install Docker ELK Container
+    - name: Download and Launch a Docker Elk Container
+      docker_container:
+        name: elk
+        image: sebp/elk:761
+        state: started
+        restart_policy: always
+        published_ports: 
+          - 5601:5601
+          - 9200:9200
+          - 5044:5044
+# This section to start Docker service on boot
+    - name: Enable Docker Service
+      systemd:
+        name: docker
+        enabled: yes
