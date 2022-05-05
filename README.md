@@ -16,10 +16,14 @@ author: Jack Turner
 
 ## Azure
 
-### Azure Environment Diagram:
+### Azure Red-Team Environment:
+![](Resources/Images/dvwa_azure_lab.drawio.png)
+
+### Azure Purple-Team Environment:
 ```Note
 TODO: Add Azure Diagram
 ```
+
 ## Docker
 ```Note:
 TODO: Helpful commands for setting up environment
