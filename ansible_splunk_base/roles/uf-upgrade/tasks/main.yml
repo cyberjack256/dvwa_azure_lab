@@ -1,0 +1,82 @@
+---
+
+- name: Ensure {{ splunk_uf_home }} dir exists
+  file:
+    path: "{{ splunk_uf_home }}"
+    state: directory
+    mode: 0755  
+    owner: "{{ os_user }}"
+    group: "{{ os_group }}"
+  become: yes
+
+- name: -initd- Stop the UF
+  command: "{{ splunk_uf_home }}/bin/splunk stop"
+  become: yes  
+
+
+- name: Check for the presence of /home/{{ os_user }}/{{ splunk_uf_tgz }}
+  stat: 
+    path: /home/{{ os_user }}/{{ splunk_uf_tgz }}
+    get_checksum: yes  
+    checksum_algorithm: md5
+  register: splunk_uf_tgz_downloaded_flag
+  become: yes
+
+- name: -TGZ- Download (wget) {{ splunk_uf_tgz }}
+  get_url:
+    url: "https://download.splunk.com/products/universalforwarder/releases/{{ splunk_uf_version }}/linux/{{ splunk_uf_tgz }}"    
+    checksum: "md5:{{ splunk_uf_tgz_checksum }}"
+    dest: /home/{{ os_user }}
+    mode: 0640  
+    owner: "{{ os_user }}"
+    group: "{{ os_group }}"
+    timeout: 20
+  become: yes
+  when: splunk_uf_tgz_downloaded_flag.stat.exists == False and download_uf_tgz_from_splunk_servers
+
+- name: -TGZ- Upload ./files/{{ splunk_uf_tgz }} (local) to /home/{{ os_user }}/ (remote)
+  copy:
+    src: "files/{{ splunk_uf_tgz }}"
+    dest: /home/{{ os_user }}
+    mode: '0640'
+    owner: "{{ os_user }}"
+    group: "{{ os_group }}"
+  become: yes
+  when: splunk_uf_tgz_downloaded_flag.stat.exists == False and not download_uf_tgz_from_splunk_servers   
+
+- name: Extract {{ splunk_uf_tgz }} to {{ splunk_uf_home }} to upgrade
+  unarchive:
+    src: /home/{{ os_user }}/{{ splunk_uf_tgz }}
+    dest: "{{ splunk_base_path }}"
+    remote_src: yes
+    owner: "{{ os_user }}"
+    group: "{{ os_group }}"    
+  become: yes
+
+- name: Set {{ splunk_uf_home }} owner & group recursively
+  file:
+    path: "{{ splunk_uf_home }}"
+    state: directory
+    owner: "{{ os_user }}"
+    group: "{{ os_group }}"
+    recurse: yes
+  become: yes  
+
+
+- name: -initd- Splunk enable boot-start
+  command: "{{ splunk_uf_home }}/bin/splunk enable boot-start -user {{ os_user }} --no-prompt --answer-yes --accept-license"
+  become: yes 
+
+- name: -initd- Start Splunk UF for the first time
+  command: "{{ splunk_uf_home }}/bin/splunk start --no-prompt --answer-yes --accept-license"
+  become: yes    
+
+  
+- name: "Create symlink to splunk in /usr/local/bin"
+  file:
+    src: "{{ splunk_uf_home }}/bin/splunk"
+    path: /usr/local/bin/splunk
+    state: link
+    owner: "{{ os_user }}"
+    group: "{{ os_group }}"
+  become: yes

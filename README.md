@@ -7,7 +7,7 @@ author: Jack Turner
 
 # dvwa_azure_lab
 
-This project contains a proof-of-concept examining three scenarios for Managed Security Service Provider MSSP log aggregation: 1) On premises resource, logging directly to splunk via Azure Event Hub , 2) On premises resource logging to an Azure Sentinel SIEM pushing alert logs to splunk via Event Hub, 3) On premises resource,  logging directly to Azure Sentinel via Azure Event Hub. Using both the Damn Vulnerable Web Application (DVWA) and a Kali Linux, we are able to emulate malicious traffic originating from a threat, external to the internal network resources.
+This project contains a proof-of-concept examining two scenarios using Microsoft Sentinel side-by-side with Splunk Enterprise for a Managed Security Service Provider MSSP log aggregation solution: 1) Resource, logging to Splunk from Azure Eventhub. 2) Resource logging to an Microsoft Sentinel, sending enriched Microsoft Sentinel alerts to 3rd party SIEM (Splunk. Using both the Damn Vulnerable Web Application (DVWA) and a Kali Linux, we are able to emulate malicious traffic originating from a threat, external to the internal network resources.
 
 
 ## Scenario One: On Premises resource -> Splunk
@@ -17,7 +17,7 @@ This project contains a proof-of-concept examining three scenarios for Managed S
 
 ## Index
 - [Ansible](#ansible)
-  [Docker](#docker)
+- [Docker](#docker)
 - [Azure](#azure)
 - 
 ## Ansible
@@ -88,9 +88,21 @@ with_items:
 
 The description of this is at the top as a comment. Using the “apt” Ansible module (follow the link for information on modules) we install a variety of software on the server. The first batch of software is tagged as “configuration” and “security” and the last are just configurations. The first batch install chkrootkit, clamav, and the second stanza installs a set of configuration utilities (vim, net-tools, yum-utils, wget, and htop. This is the typical structure of an Ansible play, which coordinates what happens on the host system. Plays are powered by different kinds of Ansible modules, the one used above is apt module. A full list of supported modules is available in the Ansible [Docs](https://docs.ansible.com/).
 
-
+### Running Ansible for the First Time
+  - Ansible is installed, see above
+  - Generate keys for `splunk-admin` using `ssh-keygen`
+  - Copy keys to the Splunk server 
+```bash 
+ssh-copy-id -i ~/.ssh/<key>.pub 
+```
+  - Inventory is configured under hosts file
 
 ## Docker
 ```Note:
 TODO: Docker section
+```
+
+## Azure
+```Note:
+TODO: Azure section
 ```

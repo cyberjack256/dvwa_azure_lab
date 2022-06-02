@@ -1,0 +1,81 @@
+---
+
+- name: Create {{ splunk_home }}/etc/auth/mycerts dir
+  file:
+    path: "{{ splunk_home }}/etc/auth/mycerts/"
+    state: directory
+    mode: '0755'  
+    owner: "{{ os_user }}"
+    group: "{{ os_group }}"
+  become: yes
+
+- name: -SSL Certs- Upload public key file (mycerts/cert.pem)
+  copy:
+    src: "certs/cert.pem"
+    dest: "{{ splunk_home }}/etc/auth/mycerts/cert.pem"
+    mode: '0640'
+    owner: "{{ os_user }}"
+    group: "{{ os_group }}"
+  become: yes
+
+- name: -SSL Certs- Upload private key file (mycerts/privkey.pem)
+  copy:
+    src: "certs/privkey.pem"
+    dest: "{{ splunk_home }}/etc/auth/mycerts/privkey.pem"
+    mode: '0640'
+    owner: "{{ os_user }}"
+    group: "{{ os_group }}"
+  become: yes
+
+
+- name: -config updates- Ensure $SPLUNK_HOME/etc/system/local/web.conf exists
+  file:
+    path: "{{ splunk_home }}/etc/system/local/web.conf"
+    state: file
+    owner: "{{ os_user }}"
+    group: "{{ os_group }}"
+  become: yes
+
+- name: -config updates- Ensure web.conf contains the [settings] stanza
+  lineinfile:
+    path: "{{ splunk_home }}/etc/system/local/web.conf"
+    line: "[settings]"
+    state: present
+  become: yes
+
+- name: -config updates- Add serverCert attribute to [settings]
+  lineinfile:
+    path: "{{ splunk_home }}/etc/system/local/web.conf"
+    regexp: '^serverCert = {{ splunk_home }}/etc/auth/mycerts/cert.pem'
+    insertbefore: '^[settings]'
+    line: 'serverCert = {{ splunk_home }}/etc/auth/mycerts/cert.pem'    
+  become: yes
+
+- name: -config updates- Add privKeyPath attribute to [settings]
+  lineinfile:
+    path: "{{ splunk_home }}/etc/system/local/web.conf"
+    regexp: '^privKeyPath = {{ splunk_home }}/etc/auth/mycerts/privkey.pem'
+    insertbefore: '^[settings]'
+    line: 'privKeyPath = {{ splunk_home }}/etc/auth/mycerts/privkey.pem'    
+  become: yes
+
+- name: -config updates- Set enableSplunkWebSSL = 1
+  replace:
+    path: "{{ splunk_home }}/etc/system/local/web.conf"
+    after: '[settings]'
+    regexp: 'enableSplunkWebSSL = 0'
+    replace: 'enableSplunkWebSSL = 1'
+  become: yes
+
+
+- name: -initd- Restart splunkd to load the new key pair
+  command: "{{ splunk_home }}/bin/splunk restart"
+  become: yes  
+  when: 
+    - install_method == "initd"
+
+- name: -systemd- Restart splunkd to load the new key pair
+  command: "systemctl restart Splunkd"
+  become: yes
+  when: 
+    - install_method == "systemd"

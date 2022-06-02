@@ -1,0 +1,6 @@
+[webservers]
+X.X.X.X ansible_python_interpreter=/usr/bin/python3 #private IP of the host
+X.X.X.X ansible_python_interpreter=/usr/bin/python3 #private IP of the host
+
+[elk]
+X.X.X.X ansible_python_interpreter=/usr/bin/python3 #private IP of the host
