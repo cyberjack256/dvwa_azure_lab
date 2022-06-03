@@ -1,6 +1,6 @@
 
 [splunkhosts]
-demo-splunk1 ansible_host=10.0.0.X
-demo-splunk2 ansible_host=10.0.0.X
+X.X.X.X ansible_python_interpreter=/usr/bin/python3 #private IP of the splunk host
+X.X.X.X ansible_python_interpreter=/usr/bin/python3 #private IP of the splunk host
 
  
