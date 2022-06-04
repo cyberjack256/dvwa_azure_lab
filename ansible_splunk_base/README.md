@@ -4,22 +4,23 @@ This is an Ansible project that installs/upgrades Splunk to a specific version. 
 
 ## Prerequisites
 
-On `ansible-server`(s), install `ansible`
+On `ansible-server`(s), install `docker`
 
 ```bash
 sudo apt update
+sudo apt install docker docker.io
 ```
 
 On `ansible-server` pull down latest ansible server
 
 ```bash
-sudo docker pull ansible/ansible
+sudo docker pull ansible/ansible:default
 ```
 
 On `ansible-server` Launch the `ansible` container and interactively connect **first-time only**:
 
 ```bash
-docker run -it ansible/ansible:latest --name ansible-server bash # start the container.
+docker run --name ansible-server ansible/ansible:default # start the container.
 ```
 
 On `ansible-server` Launch the `ansible` container and interactively connect **following `exit`**:
