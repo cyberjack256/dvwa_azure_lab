@@ -4,32 +4,38 @@ This is an Ansible project that installs/upgrades Splunk to a specific version. 
 
 ## Prerequisites
 
-On `ansible-server`(s), install `docker`
+On `ansible-server`, install `docker`
 
 ```bash
-sudo apt update
+sudo apt upgrade -y && sudo apt update -y
 sudo apt install docker docker.io
 ```
 
 On `ansible-server` pull down latest ansible server
 
 ```bash
-sudo docker pull ansible/ansible:default
+sudo docker pull diodonfrost/ansible-ubuntu:20.04
 ```
 
-On `ansible-server` Launch the `ansible` container and interactively connect **first-time only**:
+On `ansible-server` Launch the `ansible-server container` and interactively connect **first-time only**:
 
 ```bash
-docker run --name ansible-server ansible/ansible:default # start the container.
+sudo docker run --name ansible-server diodonfrost/ansible-ubuntu:20.04 # start the container and interact
 ```
 
-On `ansible-server` Launch the `ansible` container and interactively connect **following `exit`**:
+On `ansible-server container` Launch the `ansible` container and interactively connect **following `exit`**:
 
 ```bash
-docker exec ansible-server bash # interact following `# exit`.
+sudo docker exec -it ansible-server bash # interact following `# exit`.
 ```
 
-On `ansible-server` Git clone this project to the `~` directory
+On `ansible-server container` upgrade and update the container
+
+```bash
+apt update && apt upgrade -y && apt install nano sshpass
+```
+
+On `ansible-server container` Git clone this project to the `~` directory
 
 ```bash
 cd ~
@@ -58,7 +64,7 @@ git clone $repo_origin
 
 ```
 
-On `ansible-server` Navigate to project base directory
+On `ansible-server container` Navigate to project base directory
 
 ```bash
 cd ./ansible-splunk-base		
@@ -92,7 +98,92 @@ nano group_vars/all
 
 **Certs**
 
+Out of the box:
+        - All certificates are generated on a default-shipped CA configuration
+        - Splunkweb does not use SSL
+        - Splunkd uses SSL for the REST port - with certificate verification **disabled**
+        - No SSL data inputs/outputs are defined
+        - Splunkd LDAP can use SSL - with certificate verification **disabled**
 
+
+**Demo CA Creation**
+```bash
+#Generate the CA private key file
+openssl genrsa -out demo-ca.key 2048
+#Provision the CA
+openssl req -x509 -new -nodes\
+        -key demo-ca.key -sha256 -subj "/C=US/ST=MI/L=Detroit/O=Detroit Cyber/OU=Cybersecurity/CN=demo-ca"\
+        -days 365 -out demo-ca.crt #1 year CA
+
+```
+### Splunk Cert Signing Request (CSR) Configuration Creation
+Create a configuration file named <server>csr.conf for generating the Certificate Signing Request (CSR) as shown below. Replace the values as appropriate. 
+
+
+
+```bash
+cat > demo-splunk1.csr.conf <<EOF
+[ req ]
+default_bits = 2048
+prompt = no
+default_md = sha256
+req_extensions = req_ext
+distinguished_name = dn
+
+[ dn ]
+C = US
+ST = Michigan
+L = Detroit
+O = Detroit Cyber
+OU = Cybersecurity
+CN = demo-splunk1.turnerhomestead.com
+
+[ req_ext ]
+subjectAltName = @alt_names
+
+[ alt_names ]
+DNS.1 = demo-splunk1.turnerhomestead.com
+IP.1 = 192.168.86.193
+
+
+EOF
+```
+### Splunk server private key creation
+
+openssl genrsa -out demo-splunk1.key 2048
+
+### Splunk server cert signing request (CSR) creation
+
+```bash
+openssl req -new -key demo-splunk1.key -out demo-splunk1.csr -config demo-splunk1.csr.conf
+```
+### Generate the Splunk server SSL certificate using ca.key, ca.crt and server.csr
+```
+openssl x509 -req -in demo-splunk1.csr -CA demo-ca.crt -CAkey demo-ca.key  -extfile demo-splunk1.csr.conf -CAcreateserial -out demo-splunk1.crt -days 90 # 3-month 
+```
+
+### Operations
+
+To upload custom SSL certs to install with Splunk for the Web UI (default tcp/8000):
+
+Place public key (PEM format) in certs/cert.pem (include intermediate chain after the public key if available).
+
+```bash
+cat demo-splunk1.crt demo-ca.crt >> demo-chain.crt
+cp demo-chain.crt ~/dvwa_azure_lab/ansible_splunk_base/certs/cert.pem
+```
+
+Place private key (PEM format) in certs/privkey.pem
+
+```bash
+cp demo-splunk1.key ~/dvwa_azure_lab/ansible_splunk_base/certs/privkey.pem
+```
+
+Upload the certs to $SPLUNK_HOME/etc/auth/my-certs/ on the splunk hosts and perform default configuration to reference these certs in $SPLUNK_HOME/etc/system/local/web.conf
+
+```bash
+ansible-playbook -i hosts tls-config.yml
+```
 
 ## Operations
 
@@ -101,13 +192,13 @@ nano group_vars/all
 On `ansible-server` set variable for playbook base directory
 
 ```bash
-export $ansible_splunk_base="~/ansible-splunk-base/ "
+export ="~/ansible-splunk-base/ "
 ```
 
 On `ansible-server` target host stanzas, limit to select hosts within an host stanza, run one or multiple roles in one command.
 
 ```bash
-$ansible_splunk_base ansible-playbook -i hosts --limit= demo-splunk1 combo.yml tls-config.yml
+ansible-playbook -i hosts --limit= demo-splunk1 combo.yml tls-config.yml
 ```
 
 **Install Splunk only**
@@ -115,7 +206,7 @@ $ansible_splunk_base ansible-playbook -i hosts --limit= demo-splunk1 combo.yml t
 On `ansible-server` run the Splunk install playbook
 
 ```bash
-$ansible_splunk_base ansible-playbook -i hosts install.yml
+ansible-playbook -i hosts install.yml
 ```
 
 **Upgrade Splunk**
@@ -123,7 +214,7 @@ $ansible_splunk_base ansible-playbook -i hosts install.yml
 On `ansible-server` run the Splunk upgrade playbook
 
 ```bash
-$ansible_splunk_base ansible-playbook -i hosts upgrade.yml
+ansible-playbook -i hosts upgrade.yml
 ```
 
 **Configure OS with Splunk best practices**
@@ -131,7 +222,7 @@ $ansible_splunk_base ansible-playbook -i hosts upgrade.yml
 On `ansible-server` run the os configuration playbook
 
 ```bash
-$ansible_splunk_base ansible-playbook -i hosts os-config.yml
+ansible-playbook -i hosts os-config.yml
 ```
 
 **Configure OS with Splunk best practices AND install Splunk**
@@ -139,7 +230,7 @@ $ansible_splunk_base ansible-playbook -i hosts os-config.yml
 On `ansible-server` run the os configuration and splunk installation playbook
 
 ```bash
-$ansible_splunk_base ansible-playbook -i hosts combo.yml	
+ansible-playbook -i hosts combo.yml	
 ```
 
 **Configure an TLS/SSL key pair for the Splunk web UI on tcp/8000**
@@ -147,7 +238,7 @@ $ansible_splunk_base ansible-playbook -i hosts combo.yml
 On `ansible-server` run the TLS/SSL configuration playbook
 
 ```bash
-$ansible_splunk_base ansible-playbook -i hosts tls-config.yml						
+ansible-playbook -i hosts tls-config.yml						
 ```
 
 **Install universal forwarder on Linux host(s)**
@@ -155,7 +246,7 @@ $ansible_splunk_base ansible-playbook -i hosts tls-config.yml
 On `ansible-server` run the Splunk UF install playbook
 
 ```bash
-$ansible_splunk_base ansible-playbook -i hosts uf-install.yml
+ansible-playbook -i hosts uf-install.yml
 ```
 
 **Configure universal forwarder on Linux host(s)**
@@ -163,7 +254,7 @@ $ansible_splunk_base ansible-playbook -i hosts uf-install.yml
 On `ansible-server` run the Splunk UF config playbook
 
 ```bash
-$ansible_splunk_base ansible-playbook -i hosts uf-config.yml
+ansible-playbook -i hosts uf-config.yml
 ```
 
 **Install and Configure universal forwarder on Linux host(s)**
@@ -171,28 +262,28 @@ $ansible_splunk_base ansible-playbook -i hosts uf-config.yml
 On `ansible-server` run the Splunk UF install AND config playbook
 
 ```bash
-$ansible_splunk_base ansible-playbook -i hosts uf-combo.yml	
+ansible-playbook -i hosts uf-combo.yml	
 ```
 
 **Upgrade universal forwarder on Linux host(s)**
 On `ansible-server` run the Splunk UF upgrade playbook
 
 ```bash
-$ansible_splunk_base ansible-playbook -i hosts uf-upgrade.yml					
+ansible-playbook -i hosts uf-upgrade.yml					
 ```
 
 **Backup splunk configuration on Linux host(s)**
 On `ansible-server` run the Splunk configuration only (./etc/) backup playbook
 
 ```bash
-$ansible_splunk_base ansible-playbook -i hosts backup-etc.yml
+ansible-playbook -i hosts backup-etc.yml
 ```
 **Backup full-backup splunk on Linux host(s)**
 
 On `ansible-server` run the Splunk full backup (/opt/splunk/) playbook
 
 ```bash
-$ansible_splunk_base ansible-playbook -i hosts backup-full.yml		
+ansible-playbook -i hosts backup-full.yml		
 ```
 
 ### Compatibility

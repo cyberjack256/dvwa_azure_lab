@@ -16,7 +16,7 @@ Out of the box:
 openssl genrsa -out demo-ca.key 2048
 #Provision the CA
 openssl req -x509 -new -nodes\
-        -key demo-ca.key -sha256 -subj "/C=US/ST=MI/L=Detroit/O=Detroit Cyber/OU=Cybersecurity/CN=CSOC"\
+  -key       demo-ca.key -sha256 -subj "/C=US/ST=MI/L=Detroit/O=Detroit Cyber/OU=Cybersecurity/CN=demo-ca"\
         -days 365 -out demo-ca.crt #1 year CA
 
 ```
@@ -40,15 +40,14 @@ ST = Michigan
 L = Detroit
 O = Detroit Cyber
 OU = Cybersecurity
-CN = CSOC
+CN = 192.168.86.193
 
 [ req_ext ]
 subjectAltName = @alt_names
 
 [ alt_names ]
-DNS.1 = 
-DNS.2 = 
-IP.1 = 
+DNS.1 = demo-splunk1.turnerhomestead.com
+IP.1 = 192.168.86.193
 
 
 EOF
@@ -74,13 +73,15 @@ To upload custom SSL certs to install with Splunk for the Web UI (default tcp/80
 Place public key (PEM format) in certs/cert.pem (include intermediate chain after the public key if available).
 
 ```bash
-cp demo-splunk1.crt ~/ansible_splunk_base/certs/cert.pem
+
+cat demo-splunk1.crt demo-ca.crt >> demo-chain-splunk1.crt
+cp demo-chain-splunk1.crt ~/dvwa_azure_lab/ansible_splunk_base/certs/cert.pem
 ```
 
 Place private key (PEM format) in certs/privkey.pem
 
 ```bash
-cp demo-splunk1.key ~/ansible_splunk_base/certs/privkey.pem
+cp demo-splunk1.key ~/dvwa_azure_lab/ansible_splunk_base/certs/privkey.pem
 ```
 
 Upload the certs to $SPLUNK_HOME/etc/auth/my-certs/ on the splunk hosts and perform default configuration to reference these certs in $SPLUNK_HOME/etc/system/local/web.conf
