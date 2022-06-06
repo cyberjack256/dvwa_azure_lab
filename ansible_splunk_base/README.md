@@ -33,7 +33,29 @@ On `ansible-server` Git clone this project to the `~` directory
 
 ```bash
 cd ~
-git clone #TODO: Add git slug .
+# Enter in all of your variable values between the double quotations. Obtain the values from https://github.com
+name="" # Your name (e.g, "Jack Turner")
+username="" #Your username located in `account`
+email="" #Your email that is located in `profile`
+access_token="" # Create your access token and copy here
+repo_origin="https://$username:$access_token@gitlab.nps.edu/nps_csoc/socaas-splunk.git"
+
+# git config [--global || --local] user.name "$name" (First time set as --global; we will change later)
+git config --local user.name "$name"
+git config --local user.email "$email"
+git config --local --list
+
+git clone $repo_origin
+
+# Pull down any changes to the repo
+#git pull
+
+# When changing token; create a new token; copy the token; and complete the following
+#git remote -v # print your `origin`
+
+# Change your origin with the new access_token that you set
+#git remote set-url origin $repo_origin
+
 ```
 
 On `ansible-server` Navigate to project base directory

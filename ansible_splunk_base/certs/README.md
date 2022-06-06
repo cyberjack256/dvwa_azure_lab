@@ -16,7 +16,7 @@ Out of the box:
 openssl genrsa -out demo-ca.key 2048
 #Provision the CA
 openssl req -x509 -new -nodes\
-        -key demo-ca.key -sha256 -subj "/C=US/ST=/L=/O=/OU= /CN="\
+        -key demo-ca.key -sha256 -subj "/C=US/ST=MI/L=Detroit/O=Detroit Cyber/OU=Cybersecurity/CN=CSOC"\
         -days 365 -out demo-ca.crt #1 year CA
 
 ```
@@ -37,10 +37,10 @@ distinguished_name = dn
 [ dn ]
 C = US
 ST = Michigan
-L = Ann Arbor
-O = 
-OU = 
-CN = 
+L = Detroit
+O = Detroit Cyber
+OU = Cybersecurity
+CN = CSOC
 
 [ req_ext ]
 subjectAltName = @alt_names
