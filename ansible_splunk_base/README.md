@@ -123,34 +123,42 @@ Create a configuration file named <server>csr.conf for generating the Certificat
 
 ```bash
 cat > demo-splunk1.csr.conf <<EOF
-[ req ]
+[req]
 default_bits = 2048
 prompt = no
 default_md = sha256
-req_extensions = req_ext
+x509_extensions = v3_ext
 distinguished_name = dn
 
-[ dn ]
+[dn]
 C = US
 ST = Michigan
 L = Detroit
 O = Detroit Cyber
 OU = Cybersecurity
-CN = demo-splunk1.turnerhomestead.com
+CN = 192.168.86.193
 
 [ req_ext ]
 subjectAltName = @alt_names
 
-[ alt_names ]
+[v3_ext]
+subjectAltName = @alt_names
+extendedKeyUsage = serverAuth
+keyUsage = keyEncipherment, dataEncipherment
+
+[alt_names]
 DNS.1 = demo-splunk1.turnerhomestead.com
-IP.1 = 192.168.86.193
+DNS.2 = demo-splunk1
+IP.1  = 192.168.86.193
 
 
 EOF
 ```
 ### Splunk server private key creation
 
+```bash
 openssl genrsa -out demo-splunk1.key 2048
+```
 
 ### Splunk server cert signing request (CSR) creation
 
@@ -159,8 +167,76 @@ openssl req -new -key demo-splunk1.key -out demo-splunk1.csr -config demo-splunk
 ```
 ### Generate the Splunk server SSL certificate using ca.key, ca.crt and server.csr
 ```
-openssl x509 -req -in demo-splunk1.csr -CA demo-ca.crt -CAkey demo-ca.key  -extfile demo-splunk1.csr.conf -CAcreateserial -out demo-splunk1.crt -days 90 # 3-month 
+openssl x509 -req -in demo-splunk1.csr -CA demo-ca.crt -CAkey demo-ca.key  -extfile demo-splunk1.csr.conf -extensions 'v3_ext' -CAcreateserial -out demo-splunk1.crt -days 90 # 3-month 
 ```
+
+### View the output of your newly minted SSL certificate with SAN names
+```bash
+openssl x509 -in demo-splunk1.crt -noout -text
+```
+
+The output should look nearly identical
+```root@9bf78502c3f1:~# openssl x509 -in demo-splunk1.crt -noout -text
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number:
+            3f:d3:7a:48:86:98:a3:38:62:68:0b:64:5f:7f:a8:16:cd:40:c3:97
+        Signature Algorithm: sha256WithRSAEncryption
+        Issuer: C = US, ST = MI, L = Detroit, O = Detroit Cyber, OU = Cybersecurity, CN = demo-ca
+        Validity
+            Not Before: Jun  8 21:17:25 2022 GMT
+            Not After : Sep  6 21:17:25 2022 GMT
+        Subject: C = US, ST = Michigan, L = Detroit, O = Detroit Cyber, OU = Cybersecurity, CN = 192.168.86.193
+        Subject Public Key Info:
+            Public Key Algorithm: rsaEncryption
+                RSA Public-Key: (2048 bit)
+                Modulus:
+                    00:a0:b5:ff:f4:ff:85:53:10:cf:0a:2f:3b:73:85:
+                    4d:68:e4:1c:ff:a6:7c:ac:d7:cb:e4:75:dd:26:2c:
+                    de:a6:cb:04:a5:92:38:46:a0:cd:16:c5:48:7e:4c:
+                    64:71:cd:22:33:7a:cb:10:a7:3d:2b:5c:87:a4:a4:
+                    86:2c:8d:b6:cd:e9:fe:0c:03:71:da:72:0e:b5:7b:
+                    cc:7d:c6:ce:a7:76:25:f0:88:0d:2e:18:40:0f:ed:
+                    9d:e3:49:1e:bf:e6:8f:91:df:5e:f2:40:5c:2f:38:
+                    c0:8a:4c:79:9d:a7:88:66:74:64:ba:d8:70:ba:ea:
+                    7a:e4:53:1b:f3:80:40:40:85:da:08:1d:73:a3:19:
+                    49:2d:59:ff:0b:23:8e:e8:c0:ab:6d:43:d7:80:62:
+                    c5:f2:2e:60:0e:73:fc:e1:ca:15:7c:45:5a:04:21:
+                    07:13:06:9e:15:6d:b8:4d:b6:df:b8:7c:e9:06:d3:
+                    88:fd:3b:90:f3:39:2e:9d:8a:ca:92:d2:96:41:58:
+                    c2:63:25:a4:2e:2c:6f:d9:6b:98:ea:8b:6c:c1:7e:
+                    09:2b:07:84:e7:f1:5e:2d:5a:6c:e7:5e:9d:13:93:
+                    58:43:68:6d:fe:5a:1f:67:7f:62:69:17:cc:2a:82:
+                    84:b9:c4:31:2b:01:0d:5e:0d:6d:19:8d:fb:4b:6d:
+                    ed:ed
+                Exponent: 65537 (0x10001)
+        X509v3 extensions:
+            X509v3 Subject Alternative Name:
+                DNS:demo-splunk1.turnerhomestead.com, DNS:demo-splunk1, DNS:*.demo-splunk1.turnerhomestead.com, IP Address:192.168.86.193
+            X509v3 Extended Key Usage:
+                TLS Web Server Authentication
+            X509v3 Key Usage:
+                Key Encipherment, Data Encipherment
+    Signature Algorithm: sha256WithRSAEncryption
+         39:8b:4e:ce:f7:e4:9d:c2:2b:62:b1:e9:13:9f:e7:62:70:50:
+         17:ba:44:44:27:0d:e0:88:35:41:49:89:e5:02:81:d7:81:e9:
+         1c:40:84:55:43:d8:13:28:8a:fa:d1:4e:84:43:52:ce:a5:fa:
+         26:18:d8:87:0b:89:64:7c:a6:21:7c:96:8c:cb:08:6d:7f:ff:
+         b6:e8:bd:3c:f5:2c:1f:be:3f:48:29:0f:d5:b2:c3:02:2b:40:
+         2b:43:ae:d1:33:ac:59:83:fd:99:5d:7d:77:31:12:24:af:a4:
+         db:ab:c3:1a:6c:91:d9:d4:d9:91:e8:6f:60:08:f5:5a:a3:63:
+         92:43:ba:fa:bb:b4:30:76:17:84:3a:cf:f8:57:29:71:8e:e4:
+         b1:08:35:f5:7c:ca:30:ab:f2:09:ad:66:be:d5:2f:68:aa:8c:
+         83:9e:62:2c:65:84:a6:04:dd:70:72:e3:5a:26:e1:ae:a1:5a:
+         42:d5:11:ad:6d:bb:ae:51:25:73:0a:91:00:24:64:4d:46:df:
+         ab:e9:8f:a6:d9:fa:d5:04:f2:cb:49:0c:b9:ab:c8:4a:a5:6e:
+         d9:8c:93:2a:c0:e7:d6:cd:65:23:80:f0:ec:48:78:bd:48:d4:
+         66:f2:96:77:f2:e5:f4:cd:cb:90:15:90:ff:f8:d8:a2:bb:c2:
+         13:ad:b8:3a
+
+```
+
 
 ### Operations
 

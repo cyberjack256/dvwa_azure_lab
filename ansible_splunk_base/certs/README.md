@@ -40,21 +40,29 @@ ST = Michigan
 L = Detroit
 O = Detroit Cyber
 OU = Cybersecurity
-CN = 192.168.86.193
+CN = demo-splunk1.turnerhomestead.com
 
 [ req_ext ]
 subjectAltName = @alt_names
 
+[ v3_req ]
+subjectAltName = @alt_names
+extendedKeyUsage = serverAuth
+
 [ alt_names ]
-DNS.1 = demo-splunk1.turnerhomestead.com
-IP.1 = 192.168.86.193
+DNS.1   = demo-splunk1.turnerhomestead.com
+DNS.2   = demo-splunk1
+DNS.3   = *.demo-splunk1.turnerhomestead.com
+IP.1    = 192.168.86.193
 
 
 EOF
 ```
 ### Splunk server private key creation
 
+```bash
 openssl genrsa -out demo-splunk1.key 2048
+```
 
 ### Splunk server cert signing request (CSR) creation
 
